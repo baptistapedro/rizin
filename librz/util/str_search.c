@@ -498,7 +498,10 @@ RZ_API int rz_scan_strings(RzBuffer *buf_to_scan, RzList *list, const RzUtilStrS
 	if (from == to) {
 		return 0;
 	} else if (from > to) {
-		RZ_LOG_ERROR("Invalid range to find strings 0x%" PFMT64x " .. 0x%" PFMT64x "\n", from, to);
+		RZ_LOG_ERROR("rz_scan_strings: Invalid range to find strings 0x%" PFMT64x " .. 0x%" PFMT64x "\n", from, to);
+		return -1;
+	} else if (type == RZ_STRING_ENC_MUTF8 || type == RZ_STRING_ENC_BASE64) {
+		RZ_LOG_ERROR("rz_scan_strings: %s search type is not supported.\n", rz_str_enc_as_string(type));
 		return -1;
 	}
 
