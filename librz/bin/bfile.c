@@ -685,6 +685,9 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 			section_size += 0x10000;
 			section_size &= ~(0x10000 - 1);
 		}
+		if (!section_size) {
+			section_size += 0x10000;
+		}
 
 		if (max_interval && section_size > max_interval) {
 			RZ_LOG_WARN("bin_file_strings: search interval size (0x%" PFMT64x ") exeeds bin.maxstrbuf (0x%" PFMT64x "), skipping it.\n", section_size, max_interval);
@@ -776,6 +779,16 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 		}
 	}
 	rz_list_sort(results, (RzListComparator)string_compare_sort);
+
+	{
+		RzListIter *it;
+		RzBinString *bstr;
+		ut32 ordinal = 0;
+		rz_list_foreach (results, it, bstr) {
+			bstr->ordinal = ordinal;
+			ordinal++;
+		}
+	}
 
 fail:
 	if (pool) {
