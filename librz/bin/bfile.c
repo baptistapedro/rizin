@@ -758,7 +758,7 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 	rz_sys_usleep(50);
 	do {
 		rz_sys_usleep(50);
-	} while (!rz_th_pool_wait_async(pool));
+	} while (!rz_th_pool_wait(pool));
 
 	results = rz_list_newf(rz_bin_string_free);
 	if (!results) {
@@ -779,8 +779,7 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 
 fail:
 	if (pool) {
-		// ensure there are no threads running..
-		rz_th_pool_kill(pool, true);
+		rz_th_pool_wait(pool);
 		for (ut32 i = 0; i < pool->size; ++i) {
 			if (!pool->threads[i]) {
 				continue;
