@@ -779,6 +779,8 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 
 fail:
 	if (pool) {
+		// ensure there are no threads running..
+		rz_th_pool_kill(pool, true);
 		for (ut32 i = 0; i < pool->size; ++i) {
 			if (!pool->threads[i]) {
 				continue;
