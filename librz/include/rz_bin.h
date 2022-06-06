@@ -162,23 +162,6 @@ typedef enum {
 #define RZ_BIN_LANGUAGE_HAS_BLOCKS(x) ((x)&RZ_BIN_LANGUAGE_BLOCKS)
 
 enum {
-	RZ_BIN_STRING_ENC_DETECT = 'g',
-	RZ_BIN_STRING_ENC_8BIT = 'b', // unknown 8bit encoding but with ASCII from 0 to 0x7f
-	RZ_BIN_STRING_ENC_UTF8 = '8',
-	RZ_BIN_STRING_ENC_MUTF8 = 'm', // modified utf8
-	RZ_BIN_STRING_ENC_WIDE_LE = 'u', // utf16 / widechar string
-	RZ_BIN_STRING_ENC_WIDE32_LE = 'U', // utf32
-	RZ_BIN_STRING_ENC_WIDE_BE = 'n', // utf16-be / widechar string
-	RZ_BIN_STRING_ENC_WIDE32_BE = 'N', // utf32-be
-	RZ_BIN_STRING_ENC_BASE64 = '6',
-	RZ_BIN_STRING_ENC_IBM037 = 'c',
-	RZ_BIN_STRING_ENC_IBM290 = 'd',
-	RZ_BIN_STRING_ENC_EBCDIC_UK = 'k',
-	RZ_BIN_STRING_ENC_EBCDIC_US = 's',
-	RZ_BIN_STRING_ENC_EBCDIC_ES = 't',
-};
-
-enum {
 	RZ_BIN_CLASS_PRIVATE,
 	RZ_BIN_CLASS_PUBLIC,
 	RZ_BIN_CLASS_FRIENDLY,
@@ -296,7 +279,6 @@ typedef struct rz_bin_object_t {
 	HtPP *classes_ht;
 	HtPP *methods_ht;
 	RzBinSourceLineInfo *lines;
-	HtUP *strings_db;
 	RzList /*<RzBinMem>*/ *mem;
 	char *regstate;
 	RzBinInfo *info;
@@ -922,7 +904,7 @@ RZ_API RzBinInfo *rz_bin_get_info(RzBin *bin);
 RZ_API void rz_bin_set_baddr(RzBin *bin, ut64 baddr);
 RZ_API ut64 rz_bin_get_laddr(RzBin *bin);
 RZ_API ut64 rz_bin_get_size(RzBin *bin);
-RZ_API RzList *rz_bin_file_strings(RzBinFile *a, size_t min_length, bool raw_strings);
+RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_length, bool raw_strings);
 
 // use RzBinFile instead
 RZ_API RZ_DEPRECATE RZ_BORROW RzList *rz_bin_get_entries(RZ_NONNULL RzBin *bin);
@@ -978,7 +960,6 @@ RZ_API bool rz_bin_select_bfid(RzBin *bin, ut32 bf_id);
 RZ_API bool rz_bin_use_arch(RzBin *bin, const char *arch, int bits, const char *name);
 RZ_API RzBuffer *rz_bin_create(RzBin *bin, const char *plugin_name, const ut8 *code, int codelen, const ut8 *data, int datalen, RzBinArchOptions *opt);
 
-RZ_API RZ_BORROW const char *rz_bin_string_type(int type);
 RZ_API const char *rz_bin_entry_type_string(int etype);
 
 RZ_API bool rz_bin_file_object_new_from_xtr_data(RzBin *bin, RzBinFile *bf, RzBinObjectLoadOptions *opts, RzBinXtrData *data);

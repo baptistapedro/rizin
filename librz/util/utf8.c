@@ -558,13 +558,12 @@ RZ_API int rz_utf8_encode(ut8 *ptr, const RzRune ch) {
 
 /* Convert a unicode RzRune string into an utf-8 one */
 RZ_API int rz_utf8_encode_str(const RzRune *str, ut8 *dst, const int dst_length) {
-	int i, pos = 0;
-
 	if (!str || !dst) {
 		return -1;
 	}
 
-	for (i = 0; i < sizeof(str) - 1 && str[i] && pos < dst_length - 1; i++) {
+	int pos = 0;
+	for (size_t i = 0; i < sizeof(str) - 1 && str[i] && pos < dst_length - 1; i++) {
 		pos += rz_utf8_encode(&dst[pos], str[i]);
 	}
 
@@ -588,9 +587,9 @@ RZ_API int rz_utf8_size(const ut8 *ptr) {
 }
 
 RZ_API int rz_utf8_strlen(const ut8 *str) {
-	int i, len = 0;
+	int len = 0;
 
-	for (i = 0; str[i]; i++) {
+	for (int i = 0; str[i]; i++) {
 		if ((str[i] & 0xc0) != 0x80) {
 			len++;
 		}
@@ -639,7 +638,7 @@ RZ_API bool rz_rune_is_printable(const RzRune c) {
 
 #if __WINDOWS__
 RZ_API char *rz_utf16_to_utf8_l(const wchar_t *wc, int len) {
-	if (!wc || !len || len < -1) {
+	if (!wc || len < 1) {
 		return NULL;
 	}
 	char *rutf8 = NULL;
@@ -658,7 +657,7 @@ RZ_API char *rz_utf16_to_utf8_l(const wchar_t *wc, int len) {
 }
 
 RZ_API wchar_t *rz_utf8_to_utf16_l(const char *cstring, int len) {
-	if (!cstring || !len || len < -1) {
+	if (!cstring || len < 1) {
 		return NULL;
 	}
 	wchar_t *rutf16 = NULL;
@@ -677,7 +676,7 @@ RZ_API wchar_t *rz_utf8_to_utf16_l(const char *cstring, int len) {
 }
 
 RZ_API char *rz_utf8_to_acp_l(const char *str, int len) {
-	if (!str || !len || len < -1) {
+	if (!str || len < 1) {
 		return NULL;
 	}
 	char *acp = NULL;
@@ -706,7 +705,7 @@ RZ_API char *rz_utf8_to_acp_l(const char *str, int len) {
 }
 
 RZ_API char *rz_acp_to_utf8_l(const char *str, int len) {
-	if (!str || !len || len < -1) {
+	if (!str || len < 1) {
 		return NULL;
 	}
 	int wcsize;
@@ -730,10 +729,7 @@ RZ_API char *rz_acp_to_utf8_l(const char *str, int len) {
 
 RZ_API int rz_utf_block_idx(RzRune ch) {
 	const int last = rz_utf_blocks_count;
-	int low, hi, mid;
-
-	low = 0;
-	hi = last - 1;
+	int low = 0, hi = last - 1, mid = 0;
 
 	do {
 		mid = (low + hi) >> 1;
@@ -759,14 +755,14 @@ RZ_API int *rz_utf_block_list(const ut8 *str, int len, int **freq_list) {
 	if (len < 0) {
 		len = strlen((const char *)str);
 	}
-	static int block_freq[rz_utf_blocks_count] = { 0 };
-	int *list = RZ_NEWS(int, len + 1);
+	int block_freq[rz_utf_blocks_count] = { 0 };
+	int *list = RZ_NEWS0(int, len + 1);
 	if (!list) {
 		return NULL;
 	}
 	int *freq_list_ptr = NULL;
 	if (freq_list) {
-		*freq_list = RZ_NEWS(int, len + 1);
+		*freq_list = RZ_NEWS0(int, len + 1);
 		if (!*freq_list) {
 			free(list);
 			return NULL;
@@ -776,7 +772,7 @@ RZ_API int *rz_utf_block_list(const ut8 *str, int len, int **freq_list) {
 	int *list_ptr = list;
 	const ut8 *str_ptr = str;
 	const ut8 *str_end = str + len;
-	RzRune ch;
+	RzRune ch = 0;
 	while (str_ptr < str_end) {
 		int block_idx;
 		int ch_bytes = rz_utf8_decode(str_ptr, str_end - str_ptr, &ch);
