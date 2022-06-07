@@ -363,10 +363,8 @@ RZ_API RzBinPlugin *rz_bin_file_cur_plugin(RzBinFile *bf) {
 }
 
 typedef struct bin_file_search_interval_t {
-	ut64 vaddr;
 	ut64 paddr;
 	ut64 psize;
-	bool cfstring;
 } BinFileSearchItv;
 
 typedef struct bin_file_string_search_t {
@@ -434,78 +432,11 @@ static RzList *string_scan_range(BinFileStrSearch *bfss, const ut64 paddr, const
 	return found;
 }
 
-static void string_scan_range_cfstring(BinFileStrSearch *bfss, const ut64 paddr, const ut64 vaddr, const ut64 size) {
-	// load objc/swift strings from cfstring table section
-
-	RzBinObject *o = bfss->bf->o;
-	const int bits = o->info ? o->info->bits : 32;
-	const int cfstr_size = (bits == 64) ? 32 : 16;
-	const int cfstr_offs = (bits == 64) ? 16 : 8;
-
-	ut8 *sbuf = calloc(size, 1);
-	if (!sbuf) {
-		RZ_LOG_ERROR("bin_file_strings: cannot allocate RzBinString.\n");
-		return;
-	}
-
-	// beg critical section
-	rz_th_lock_enter(bfss->lock);
-	rz_buf_read_at(bfss->bf->buf, paddr + cfstr_offs, sbuf, size);
-	rz_th_lock_leave(bfss->lock);
-	// end critical section
-
-	for (ut64 i = 0; i < size; i += cfstr_size) {
-		ut8 *buf = sbuf;
-		ut8 *p = buf + i;
-		if ((i + ((bits == 64) ? 8 : 4)) >= size) {
-			break;
-		}
-
-		ut64 cfstr_vaddr = vaddr + i;
-		ut64 cstr_vaddr = (bits == 64) ? rz_read_le64(p) : rz_read_le32(p);
-		if (!cstr_vaddr || cstr_vaddr == UT64_MAX) {
-			continue;
-		}
-
-		// beg critical section
-		rz_th_lock_enter(bfss->lock);
-		RzBinString *s = ht_up_find(bfss->strings_db, cstr_vaddr, NULL);
-		rz_th_lock_leave(bfss->lock);
-		// end critical section
-
-		if (!s) {
-			continue;
-		}
-
-		RzBinString *bs = RZ_NEW0(RzBinString);
-		if (!bs) {
-			RZ_LOG_ERROR("bin_file_strings: cannot allocate RzBinString\n");
-			break;
-		}
-
-		bs->type = s->type;
-		bs->length = s->length;
-		bs->size = s->size;
-		bs->ordinal = s->ordinal;
-		bs->vaddr = cfstr_vaddr;
-		bs->paddr = rz_bin_object_v2p(o, bs->vaddr);
-		bs->string = rz_str_newf("cstr.%s", s->string);
-		rz_list_append(bfss->results, bs);
-
-		// beg critical section
-		rz_th_lock_enter(bfss->lock);
-		ht_up_insert(bfss->strings_db, bs->vaddr, bs);
-		rz_th_lock_leave(bfss->lock);
-		// end critical section
-	}
-	free(sbuf);
-}
-
 static RzThreadFunctionRet search_string_thread_runner(RzThread *th) {
 	BinFileSearchItv *itv = NULL;
 	RzDetectedString *detected = NULL;
-	ut64 paddr = 0, vaddr = 0, psize = 0;
-	bool loop = true, cfstring = false;
+	ut64 paddr = 0, psize = 0;
+	bool loop = true;
 	BinFileStrSearch *bfss = (BinFileStrSearch *)rz_th_get_user(th);
 	RzBinFile *bf = bfss->bf;
 
@@ -519,17 +450,10 @@ static RzThreadFunctionRet search_string_thread_runner(RzThread *th) {
 		if (!itv) {
 			break;
 		}
-		cfstring = itv->cfstring;
 		paddr = itv->paddr;
 		psize = itv->psize;
-		vaddr = itv->vaddr;
 		free(itv);
 		RZ_LOG_DEBUG("[%p] searching between [0x%08" PFMT64x " : 0x%08" PFMT64x "]\n", th, paddr, paddr + psize);
-
-		if (cfstring) {
-			string_scan_range_cfstring(bfss, paddr, vaddr, psize);
-			continue;
-		}
 
 		RzList *list = string_scan_range(bfss, paddr, psize);
 		while (list) {
@@ -631,6 +555,79 @@ static int string_compare_sort(const RzBinString *a, const RzBinString *b) {
 	return 1;
 }
 
+static void string_scan_range_cfstring(RzBinFile *bf, HtUP *strings_db, RzList *results, const RzBinSection *section) {
+	// load objc/swift strings from cfstring table section
+
+	RzBinObject *o = bf->o;
+	const int bits = o->info ? o->info->bits : 32;
+	const int cfstr_size = (bits == 64) ? 32 : 16;
+	const int cfstr_offs = (bits == 64) ? 16 : 8;
+
+	ut8 *sbuf = calloc(section->size, 1);
+	if (!sbuf) {
+		RZ_LOG_ERROR("bin_file_strings: cannot allocate RzBinString.\n");
+		return;
+	}
+
+	rz_buf_read_at(bf->buf, section->paddr + cfstr_offs, sbuf, section->size);
+	for (ut64 i = 0; i < section->size; i += cfstr_size) {
+		ut8 *buf = sbuf;
+		ut8 *p = buf + i;
+		if ((i + ((bits == 64) ? 8 : 4)) >= section->size) {
+			break;
+		}
+
+		ut64 cfstr_vaddr = section->vaddr + i;
+		ut64 cstr_vaddr = (bits == 64) ? rz_read_le64(p) : rz_read_le32(p);
+		if (!cstr_vaddr || cstr_vaddr == UT64_MAX) {
+			continue;
+		}
+
+		RzBinString *s = ht_up_find(strings_db, cstr_vaddr, NULL);
+		if (!s) {
+			continue;
+		}
+
+		RzBinString *bs = RZ_NEW0(RzBinString);
+		if (!bs) {
+			RZ_LOG_ERROR("bin_file_strings: cannot allocate RzBinString\n");
+			break;
+		}
+
+		bs->type = s->type;
+		bs->length = s->length;
+		bs->size = s->size;
+		bs->ordinal = s->ordinal;
+		bs->vaddr = cfstr_vaddr;
+		bs->paddr = rz_bin_object_v2p(o, bs->vaddr);
+		bs->string = rz_str_newf("cstr.%s", s->string);
+		rz_list_append(results, bs);
+		ht_up_insert(strings_db, bs->vaddr, bs);
+	}
+	free(sbuf);
+}
+
+static void scan_cfstring_table(RzBinFile *bf, HtUP *strings_db, RzList *results, ut64 max_interval) {
+	RzListIter *iter = NULL;
+	RzBinSection *section = NULL;
+	RzBinObject *o = bf->o;
+	if (!o) {
+		return;
+	}
+	rz_list_foreach (o->sections, iter, section) {
+		if (!section->name || section->paddr >= bf->size) {
+			continue;
+		} else if (max_interval && section->size > max_interval) {
+			RZ_LOG_WARN("bin_file_strings: search interval size (0x%" PFMT64x ") exeeds bin.maxstrbuf (0x%" PFMT64x "), skipping it.\n", section->size, max_interval);
+			continue;
+		}
+
+		if (strstr(section->name, "__cfstring")) {
+			string_scan_range_cfstring(bf, strings_db, results, section);
+		}
+	}
+}
+
 /**
  * \brief  Generates a RzList struct containing RzBinString from a given RzBinFile
  *
@@ -714,9 +711,9 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 			}
 		}
 	} else if (bf->o && bf->o->sections && !rz_list_empty(bf->o->sections)) {
-		RzListIter *iter;
-		RzBinSection *section;
 		// returns only the strings found on the RzBinFile but within the data section
+		RzListIter *iter = NULL;
+		RzBinSection *section = NULL;
 		RzBinObject *o = bf->o;
 		rz_list_foreach (o->sections, iter, section) {
 			if (section->paddr >= bf->size) {
@@ -726,16 +723,13 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 				continue;
 			}
 
-			bool is_cfstring = section->name && strstr(section->name, "__cfstring");
-			if (is_cfstring || __isDataSection(bf, section)) {
+			if (__isDataSection(bf, section)) {
 				BinFileSearchItv *itv = RZ_NEW0(BinFileSearchItv);
 				if (!itv) {
 					RZ_LOG_ERROR("bin_file_strings: cannot allocate BinFileSearchItv.\n");
 					goto fail;
 				}
 
-				itv->cfstring = is_cfstring;
-				itv->vaddr = section->vaddr;
 				itv->paddr = section->paddr;
 				itv->psize = section->size;
 				if ((itv->paddr + itv->psize) > bf->size) {
@@ -777,6 +771,10 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 		if (bfss) {
 			rz_list_join(results, bfss->results);
 		}
+	}
+
+	if (!raw_strings) {
+		scan_cfstring_table(bf, strings_db, results, max_interval);
 	}
 	rz_list_sort(results, (RzListComparator)string_compare_sort);
 
