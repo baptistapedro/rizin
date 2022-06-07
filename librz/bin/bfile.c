@@ -651,7 +651,7 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 		max_interval = bf->rbin->maxstrbuf;
 	}
 
-	pool = rz_th_pool_new(0); // use all available cores.
+	pool = rz_th_pool_new(RZ_THREAD_POOL_ALL_CORES);
 	if (!pool) {
 		RZ_LOG_ERROR("bin_file_strings: cannot allocate thread pool.\n");
 		goto fail;
