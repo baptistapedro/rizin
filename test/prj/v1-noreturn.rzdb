@@ -44,14 +44,6 @@ addr.4242.noreturn=true
 
 /core/analysis/xrefs
 
-/core/analysis/zigns
-
-/core/analysis/zigns/spaces
-name=zs
-spacestack=["*"]
-
-/core/analysis/zigns/spaces/spaces
-
 /core/config
 
 /core/file

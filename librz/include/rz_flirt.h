@@ -1,17 +1,20 @@
-// SPDX-FileCopyrightText: 2021 RizinOrg <info@rizin.re>
-// SPDX-FileCopyrightText: 2021 deroad <wargio@libero.it>
+// SPDX-FileCopyrightText: 2021-2022 RizinOrg <info@rizin.re>
+// SPDX-FileCopyrightText: 2021-2022 deroad <wargio@libero.it>
 // SPDX-FileCopyrightText: 2014-2016 jfrankowski <jody.frankowski@gmail.com>
 // SPDX-License-Identifier: LGPL-3.0-only
 
 #ifndef RZ_FLIRT_H
 #define RZ_FLIRT_H
 
+#include <rz_types.h>
 #include <rz_list.h>
 #include <rz_analysis.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+RZ_LIB_VERSION_HEADER(rz_sign);
 
 #define RZ_FLIRT_NAME_MAX         1024
 #define RZ_FLIRT_LIBRARY_NAME_MAX 0xFF

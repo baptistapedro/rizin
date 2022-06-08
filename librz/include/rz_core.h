@@ -19,7 +19,6 @@
 #include <rz_cmd.h>
 #include <rz_cons.h>
 #include <rz_search.h>
-#include <rz_sign.h>
 #include <rz_debug.h>
 #include <rz_flag.h>
 #include <rz_config.h>
@@ -191,7 +190,6 @@ typedef enum rz_core_autocomplete_types_t {
 	RZ_CORE_AUTOCMPLT_FLSP,
 	RZ_CORE_AUTOCMPLT_SEEK,
 	RZ_CORE_AUTOCMPLT_FCN,
-	RZ_CORE_AUTOCMPLT_ZIGN,
 	RZ_CORE_AUTOCMPLT_EVAL,
 	RZ_CORE_AUTOCMPLT_MINS,
 	RZ_CORE_AUTOCMPLT_BRKP,
@@ -1006,7 +1004,6 @@ RZ_API void rz_core_visual_debugtraces(RzCore *core, const char *input);
 RZ_API void rz_core_visual_define(RzCore *core, const char *arg, int distance);
 RZ_API int rz_core_visual_trackflags(RzCore *core);
 RZ_API int rz_core_visual_view_graph(RzCore *core);
-RZ_API int rz_core_visual_view_zigns(RzCore *core);
 RZ_API int rz_core_visual_view_rop(RzCore *core);
 RZ_API int rz_core_visual_comments(RzCore *core);
 RZ_API int rz_core_visual_prompt(RzCore *core);
