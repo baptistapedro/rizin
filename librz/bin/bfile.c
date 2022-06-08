@@ -432,12 +432,11 @@ static RzList *string_scan_range(BinFileStrSearch *bfss, const ut64 paddr, const
 	return found;
 }
 
-static RzThreadFunctionRet search_string_thread_runner(RzThread *th) {
+static RzThreadStatus search_string_thread_runner(BinFileStrSearch *bfss) {
 	BinFileSearchItv *itv = NULL;
 	RzDetectedString *detected = NULL;
 	ut64 paddr = 0, psize = 0;
 	bool loop = true;
-	BinFileStrSearch *bfss = (BinFileStrSearch *)rz_th_get_user(th);
 	RzBinFile *bf = bfss->bf;
 
 	do {
@@ -453,7 +452,7 @@ static RzThreadFunctionRet search_string_thread_runner(RzThread *th) {
 		paddr = itv->paddr;
 		psize = itv->psize;
 		free(itv);
-		RZ_LOG_DEBUG("[%p] searching between [0x%08" PFMT64x " : 0x%08" PFMT64x "]\n", th, paddr, paddr + psize);
+		RZ_LOG_DEBUG("[%p] searching between [0x%08" PFMT64x " : 0x%08" PFMT64x "]\n", bfss, paddr, paddr + psize);
 
 		RzList *list = string_scan_range(bfss, paddr, psize);
 		while (list) {
@@ -485,8 +484,8 @@ static RzThreadFunctionRet search_string_thread_runner(RzThread *th) {
 		rz_list_free(list);
 	} while (loop);
 
-	RZ_LOG_DEBUG("[%p] died\n", th);
-	return RZ_TH_STOP;
+	RZ_LOG_DEBUG("[%p] died\n", bfss);
+	return RZ_TH_STATUS_STOP;
 }
 
 static void bin_file_string_search_free(BinFileStrSearch *bfss) {
@@ -527,7 +526,7 @@ static bool create_string_search_thread(RzThreadPool *pool, RzThreadLock *lock, 
 	bfss->intervals = intervals;
 	bfss->encoding = encoding;
 
-	RzThread *thread = rz_th_new(search_string_thread_runner, bfss, 0);
+	RzThread *thread = rz_th_new((RzThreadFunction)search_string_thread_runner, bfss);
 	if (!thread) {
 		RZ_LOG_ERROR("bin_file_strings: cannot allocate RzThread\n");
 		bin_file_string_search_free(bfss);
@@ -646,6 +645,7 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 	RzThreadPool *pool = NULL;
 	RzThreadLock *lock = NULL;
 	ut64 max_interval = 0;
+	size_t pool_size = 1;
 
 	if (bf->rbin) {
 		max_interval = bf->rbin->maxstrbuf;
@@ -656,6 +656,7 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 		RZ_LOG_ERROR("bin_file_strings: cannot allocate thread pool.\n");
 		goto fail;
 	}
+	pool_size = rz_th_pool_size(pool);
 
 	lock = rz_th_lock_new(false);
 	if (!lock) {
@@ -677,7 +678,7 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 
 	if (raw_strings) {
 		// returns all the strings found on the RzBinFile
-		ut64 section_size = bf->size / pool->size;
+		ut64 section_size = bf->size / pool_size;
 		if (section_size & (0x10000 - 1)) {
 			section_size += 0x10000;
 			section_size &= ~(0x10000 - 1);
@@ -710,7 +711,7 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 				goto fail;
 			}
 		}
-	} else if (bf->o && bf->o->sections && !rz_list_empty(bf->o->sections)) {
+	} else if (bf->o && !rz_list_empty(bf->o->sections)) {
 		// returns only the strings found on the RzBinFile but within the data section
 		RzListIter *iter = NULL;
 		RzBinSection *section = NULL;
@@ -745,17 +746,12 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 		}
 	}
 
-	RZ_LOG_VERBOSE("bin_file_strings: using %u threads\n", (ut32)pool->size);
-	for (size_t i = 0; i < pool->size; ++i) {
+	RZ_LOG_VERBOSE("bin_file_strings: using %u threads\n", (ut32)pool_size);
+	for (size_t i = 0; i < pool_size; ++i) {
 		if (!create_string_search_thread(pool, lock, bf, min_length, intervals, strings_db)) {
 			goto fail;
 		}
 	}
-
-	rz_sys_usleep(50);
-	do {
-		rz_sys_usleep(50);
-	} while (!rz_th_pool_wait(pool));
 
 	results = rz_list_newf(rz_bin_string_free);
 	if (!results) {
@@ -763,11 +759,14 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 		goto fail;
 	}
 
-	for (ut32 i = 0; i < pool->size; ++i) {
-		if (!pool->threads[i]) {
+	rz_th_pool_wait(pool);
+
+	for (ut32 i = 0; i < pool_size; ++i) {
+		RzThread *th = rz_th_pool_get_thread(pool, i);
+		if (!th) {
 			continue;
 		}
-		BinFileStrSearch *bfss = (BinFileStrSearch *)rz_th_get_user(pool->threads[i]);
+		BinFileStrSearch *bfss = (BinFileStrSearch *)rz_th_get_user(th);
 		if (bfss) {
 			rz_list_join(results, bfss->results);
 		}
@@ -791,11 +790,12 @@ RZ_API RZ_OWN RzList *rz_bin_file_strings(RZ_NONNULL RzBinFile *bf, size_t min_l
 fail:
 	if (pool) {
 		rz_th_pool_wait(pool);
-		for (ut32 i = 0; i < pool->size; ++i) {
-			if (!pool->threads[i]) {
+		for (ut32 i = 0; i < pool_size; ++i) {
+			RzThread *th = rz_th_pool_get_thread(pool, i);
+			if (!th) {
 				continue;
 			}
-			BinFileStrSearch *bfss = (BinFileStrSearch *)rz_th_get_user(pool->threads[i]);
+			BinFileStrSearch *bfss = (BinFileStrSearch *)rz_th_get_user(th);
 			bin_file_string_search_free(bfss);
 		}
 		rz_th_pool_free(pool);
