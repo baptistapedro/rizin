@@ -42,6 +42,14 @@ struct.NSString.str.meta=4
 
 /core/analysis/xrefs
 
+/core/analysis/zigns
+
+/core/analysis/zigns/spaces
+name=zs
+spacestack=["*"]
+
+/core/analysis/zigns/spaces/spaces
+
 /core/config
 
 /core/file

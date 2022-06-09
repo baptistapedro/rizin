@@ -2848,6 +2848,14 @@ xmalloc=func
 0x804851f=[{"to":134513953,"type":"c"}]
 0x8049634=[{"to":134518200,"type":"c"}]
 
+/core/analysis/zigns
+
+/core/analysis/zigns/spaces
+name=zs
+spacestack=["*"]
+
+/core/analysis/zigns/spaces/spaces
+
 /core/config
 analysis.arch=x86
 analysis.armthumb=false
@@ -3120,6 +3128,7 @@ dir.plugins=/home/akochkov/.local/lib64/rizin/0.3.0-git
 dir.prefix=/home/akochkov/.local
 dir.projects=~/.local/share/rizin/projects
 dir.types=/usr/include
+dir.zigns=~/.local/share/rizin/zigns
 emu.lazy=false
 emu.pre=false
 emu.skip=ds
@@ -3323,6 +3332,20 @@ str.escbslash=false
 tcp.islocal=false
 time.fmt=%Y-%m-%d %H:%M:%S %z
 time.zone=0
+zign.autoload=false
+zign.diff.bthresh=1.0
+zign.diff.gthresh=1.0
+zign.match.bytes=true
+zign.match.graph=true
+zign.match.hash=true
+zign.match.offset=false
+zign.match.refs=true
+zign.match.types=false
+zign.maxsz=500
+zign.mincc=10
+zign.minsz=16
+zign.prefix=sign
+zign.threshold=0.0
 zoom.byte=h
 zoom.from=0
 zoom.in=io.map
