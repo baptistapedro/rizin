@@ -4,4 +4,4 @@
 
 #include <rz_flirt.h>
 
-RZ_LIB_VERSION(rz_sign);
+RZ_LIB_VERSION(rz_flirt);

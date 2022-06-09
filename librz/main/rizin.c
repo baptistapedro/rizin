@@ -56,7 +56,7 @@ static int rz_main_version_verify(int show) {
 #endif
 		{ "rz_parse", rz_parse_version },
 		{ "rz_reg", rz_reg_version },
-		{ "rz_sign", rz_sign_version },
+		{ "rz_flirt", rz_flirt_version },
 		{ "rz_search", rz_search_version },
 		{ "rz_syscall", rz_syscall_version },
 		{ "rz_util", rz_util_version },
