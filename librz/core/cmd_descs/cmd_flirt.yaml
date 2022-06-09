@@ -3,25 +3,21 @@
 ---
 name: cmd_flirt
 commands:
-  - name: F
-    summary: FLIRT signature management
-    cname: flirt_mngmnt
-    subcommands:
-      - name: Fc
-        cname: flirt_create
-        summary: Create a FLIRT file (.pat or .sig)
-        args:
-          - name: filename
-            type: RZ_CMD_ARG_TYPE_FILE
-      - name: Fd
-        cname: flirt_dump
-        summary: Open a FLIRT file (.pat or .sig) and dumps its contents
-        args:
-          - name: filename
-            type: RZ_CMD_ARG_TYPE_FILE
-      - name: Fs
-        cname: flirt_scan
-        summary: Open a FLIRT file (.pat or .sig) and tries to apply the signatures to the loaded binary
-        args:
-          - name: filename
-            type: RZ_CMD_ARG_TYPE_FILE
+  - name: Fc
+    cname: flirt_create
+    summary: Create a FLIRT file (.pat or .sig)
+    args:
+      - name: filename
+        type: RZ_CMD_ARG_TYPE_FILE
+  - name: Fd
+    cname: flirt_dump
+    summary: Open a FLIRT file (.pat or .sig) and dumps its contents
+    args:
+      - name: filename
+        type: RZ_CMD_ARG_TYPE_FILE
+  - name: Fs
+    cname: flirt_scan
+    summary: Open a FLIRT file (.pat or .sig) and tries to apply the signatures to the loaded binary
+    args:
+      - name: filename
+        type: RZ_CMD_ARG_TYPE_FILE

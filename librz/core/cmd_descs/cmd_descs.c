@@ -8647,9 +8647,6 @@ static const RzCmdDescHelp flag_hexdump_help = {
 static const RzCmdDescHelp F_help = {
 	.summary = "FLIRT signature management",
 };
-static const RzCmdDescHelp flirt_mngmnt_help = {
-	.summary = "FLIRT signature management",
-};
 static const RzCmdDescArg flirt_create_args[] = {
 	{
 		.name = "filename",
@@ -15637,17 +15634,15 @@ RZ_IPI void rzshell_cmddescs_init(RzCore *core) {
 	RzCmdDesc *flag_hexdump_cd = rz_cmd_desc_argv_new(core->rcmd, f_cd, "fx", rz_flag_hexdump_handler, &flag_hexdump_help);
 	rz_warn_if_fail(flag_hexdump_cd);
 
-	RzCmdDesc *F_cd = rz_cmd_desc_group_new(core->rcmd, root_cd, "F", NULL, &flirt_mngmnt_help, &F_help);
+	RzCmdDesc *F_cd = rz_cmd_desc_group_new(core->rcmd, root_cd, "F", NULL, NULL, &F_help);
 	rz_warn_if_fail(F_cd);
-	RzCmdDesc *flirt_mngmnt_cd = rz_cmd_desc_group_new(core->rcmd, F_cd, "F", NULL, NULL, &flirt_mngmnt_help);
-	rz_warn_if_fail(flirt_mngmnt_cd);
-	RzCmdDesc *flirt_create_cd = rz_cmd_desc_argv_new(core->rcmd, flirt_mngmnt_cd, "Fc", rz_flirt_create_handler, &flirt_create_help);
+	RzCmdDesc *flirt_create_cd = rz_cmd_desc_argv_new(core->rcmd, F_cd, "Fc", rz_flirt_create_handler, &flirt_create_help);
 	rz_warn_if_fail(flirt_create_cd);
 
-	RzCmdDesc *flirt_dump_cd = rz_cmd_desc_argv_new(core->rcmd, flirt_mngmnt_cd, "Fd", rz_flirt_dump_handler, &flirt_dump_help);
+	RzCmdDesc *flirt_dump_cd = rz_cmd_desc_argv_new(core->rcmd, F_cd, "Fd", rz_flirt_dump_handler, &flirt_dump_help);
 	rz_warn_if_fail(flirt_dump_cd);
 
-	RzCmdDesc *flirt_scan_cd = rz_cmd_desc_argv_new(core->rcmd, flirt_mngmnt_cd, "Fs", rz_flirt_scan_handler, &flirt_scan_help);
+	RzCmdDesc *flirt_scan_cd = rz_cmd_desc_argv_new(core->rcmd, F_cd, "Fs", rz_flirt_scan_handler, &flirt_scan_help);
 	rz_warn_if_fail(flirt_scan_cd);
 
 	RzCmdDesc *g_cd = rz_cmd_desc_group_new(core->rcmd, root_cd, "g", rz_egg_compile_handler, &egg_compile_help, &g_help);
